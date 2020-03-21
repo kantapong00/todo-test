@@ -1,19 +1,45 @@
 import React, { useState } from 'react'
-import { Empty, Button, Modal, Form, Input } from 'antd'
+import { Empty, Button, Modal, Form, Input, message, Card } from 'antd'
 import 'antd/dist/antd.css'
 
-
-export default function Main() {
+const axios = require('axios').default
+export default function Main(props) {
   var [visible, setVisible] = useState(false)
+  var [title, setTitle] = useState('')
+  var [description, setDescription] = useState('')
+
+  const onCreate = () => {
+    axios.post('https://candidate.neversitup.com/todo/todos', { title, description }, 
+    {headers: { Authorization: "Bearer " + props.location.state.token }})
+      .then(response => {
+        console.log('yeah',response)
+      })
+      .catch(error => {
+        console.log('error', error)
+        message.error('Fail! wrong username and password')
+      })
+  }
 
   const showModal = () => setVisible(visible = true)
 
-  const handleOk = e => setVisible(visible = false)
+  const handleOk = e => {
+    onCreate()
+    setVisible(visible = false)
+  }
 
   const handleCancel = e => setVisible(visible = false)
 
-  const { TextArea } = Input
+  const getTodoTitle = (e) => {
+    setTitle(title = e.target.value)
+  }
 
+  const getTodoDescription = (e) => {
+    setDescription(description = e.target.value)
+  }
+
+  const { TextArea } = Input
+  console.log('props',props)
+  console.log('description',description)
   return (
     <div style={{ display: 'flex', flex: 1, height: '100vh', backgroundColor: '#f0f2f5', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{
@@ -31,15 +57,12 @@ export default function Main() {
           visible={visible}
           footer={null}
           destroyOnClose
-          onOk={handleOk}
-          onCancel={handleCancel}
         >
           <Form
+            onFinish={handleOk}
             name="basic"
             initialValues={{ remember: true }}
             style={{ display: 'flex', flexDirection: 'column' }}
-          // onFinish={onFinish}
-          // onFinishFailed={onFinishFailed}
           >
             <Form.Item
               style={{display:'block', flexDirection:'column',alignItems:'flex-start'}}
@@ -47,7 +70,7 @@ export default function Main() {
               name="username"
               rules={[{ required: true, message: 'Please input your username!' }]}
             >
-              <Input />
+              <Input onChange={getTodoTitle} />
             </Form.Item>
 
             <Form.Item
@@ -55,13 +78,13 @@ export default function Main() {
               label="Description"
               name="password"
             >
-              <TextArea rows={4} />
+              <TextArea rows={4} onChange={getTodoDescription} />
             </Form.Item>
 
             <Form.Item>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <div style={{paddingRight:'16px'}}>
-                  <Button type="ghost" htmlType="submit">
+                  <Button type="ghost" onClick={handleCancel}>
                     Cancel
                   </Button>
                 </div>
