@@ -1,18 +1,33 @@
-import React, { useState } from 'react'
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useState, useEffect } from 'react'
 import { Empty, Button, Modal, Form, Input, message, Card } from 'antd'
 import 'antd/dist/antd.css'
+import { ExclamationCircleOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import _ from 'lodash'
 
 const axios = require('axios').default
 export default function Main(props) {
   var [visible, setVisible] = useState(false)
   var [title, setTitle] = useState('')
   var [description, setDescription] = useState('')
+  var [todos, setTodos] = useState([])
+  var [selectTodo, setSelectedTodos] = useState({})
 
   const onCreate = () => {
-    axios.post('https://candidate.neversitup.com/todo/todos', { title, description }, 
-    {headers: { Authorization: "Bearer " + props.location.state.token }})
+    const vars = { title, description }
+    axios.post('https://candidate.neversitup.com/todo/todos', vars,
+      { headers: { Authorization: "Bearer " + props.location.state.token } })
       .then(response => {
-        console.log('yeah',response)
+        console.log('yeah', response)
+        const newID = response.data._id
+        const newData = {
+          ...vars,
+          _id: newID,
+          createdAt: response.data.createdAt,
+          updatedAt: response.data.updatedAt,
+          user_id: response.data.user_id,
+        }
+        setTodos([...todos, newData])
       })
       .catch(error => {
         console.log('error', error)
@@ -20,7 +35,56 @@ export default function Main(props) {
       })
   }
 
-  const showModal = () => setVisible(visible = true)
+  useEffect(() => {
+    getTodos()
+  }, [...todos])
+
+  const getTodos = async () => {
+    const result = await axios.get('https://candidate.neversitup.com/todo/todos',
+      { headers: { Authorization: "Bearer " + props.location.state.token } })
+      .then(response => {
+        // setTodos(todos = response.data)
+        return response.data
+      })
+      .catch(e => {
+        console.log(e)
+        return []
+      })
+    setTodos(result)
+  }
+
+  console.log('todos', todos)
+
+  const onDelete = (item) => {
+    axios.delete(`https://candidate.neversitup.com/todo/todos/${item}`,
+      { headers: { Authorization: "Bearer " + props.location.state.token } })
+      .then((response) => {
+        message.success('Delete transaction successful')
+        return setTodos(_.filter(todos, (each)=> each._id !== item))
+      })
+      .catch(function (error) {
+        console.log('error', error)
+      })
+  }
+
+  const onEdit = (item) => {  
+    console.log('newItem', item._id)
+    // axios.put(`https://assignment-api.dev.witsawa.com/transactions/${selectedID}`, { ...newData })
+    //   .then(() => {
+    //     this.setState({ onClickEdit: false, selectedID: null })
+    //     message.success('Edit transaction successful')
+    //   })
+    //   .catch(function (error) {
+    //     console.log('error', error)
+    //   })
+  }
+
+  const showModal = (isEdit, item) => {
+    setVisible(visible = true)
+    if (!!isEdit) {
+      setSelectedTodos(item)
+    }
+  }
 
   const handleOk = e => {
     onCreate()
@@ -37,23 +101,56 @@ export default function Main(props) {
     setDescription(description = e.target.value)
   }
 
+  const { confirm } = Modal
+
+  const showConfirm = (item) => {
+    confirm({
+      title: 'Are you sure delete this task?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Some descriptions',
+      okText: 'Yes',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk() {
+        onDelete(item._id)
+      },
+      onCancel() {
+        console.log('Cancel');
+      },
+    });
+  }
+
+  const callTodoCard = () => {
+    return todos.map((todoItem, todoIndex) => (
+      <div style={{ paddingBottom: '16px', width: '80%', display: 'flex', justifyContent: 'center' }}>
+        <Card title={todoItem.title} style={{ width: '80%' }}
+          actions={[
+            <EditOutlined key="edit" onClick={() => showModal(true, todoItem)} />,
+            <DeleteOutlined key='delete' onClick={() => showConfirm(todoItem)} />,
+          ]}>
+          <p>{todoItem.description}</p>
+        </Card>
+      </div>
+    )
+    )
+  }
+
   const { TextArea } = Input
-  console.log('props',props)
-  console.log('description',description)
   return (
     <div style={{ display: 'flex', flex: 1, height: '100vh', backgroundColor: '#f0f2f5', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{
         backgroundColor: 'white', width: '80%', height: '80%', justifyContent: 'center',
         alignItems: 'center', display: 'flex', borderRadius: '5px', flexDirection: 'column'
       }}>
-        <Empty style={{ position: 'absolute' }} description="Empty press 'Create for add new todo" />
+        {todos.length !== 0 ? <div style={{ width: '80%' }}>{callTodoCard()}</div> :
+          <Empty style={{ position: 'absolute' }} description="Empty press 'Create' for add new todo" />}
         <div style={{ display: 'flex', flex: 1, alignItems: 'flex-end', paddingBottom: '24px' }} >
           <Button type="primary" onClick={showModal}>Create</Button>
         </div>
       </div>
       <div>
         <Modal
-          title="Create Todo"
+          title={!selectTodo ? 'Create Todo' : 'Edit Todo'}
           visible={visible}
           footer={null}
           destroyOnClose
@@ -65,33 +162,38 @@ export default function Main(props) {
             style={{ display: 'flex', flexDirection: 'column' }}
           >
             <Form.Item
-              style={{display:'block', flexDirection:'column',alignItems:'flex-start'}}
+              style={{ display: 'block', flexDirection: 'column', alignItems: 'flex-start' }}
               label="Title"
               name="username"
               rules={[{ required: true, message: 'Please input your username!' }]}
             >
-              <Input onChange={getTodoTitle} />
+              {!selectTodo ? <Input onChange={getTodoTitle} /> : <Input onChange={getTodoTitle} defaultValue={selectTodo.title} />}
             </Form.Item>
 
             <Form.Item
-              style={{display:'block', flexDirection:'column',alignItems:'flex-start'}}
+              style={{ display: 'block', flexDirection: 'column', alignItems: 'flex-start' }}
               label="Description"
-              name="password"
+              name="description"
             >
-              <TextArea rows={4} onChange={getTodoDescription} />
+              {!selectTodo ? <TextArea rows={4} onChange={getTodoDescription} /> :
+                <TextArea rows={4} onChange={getTodoDescription} defaultValue={selectTodo.description} />}
             </Form.Item>
 
             <Form.Item>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <div style={{paddingRight:'16px'}}>
+                <div style={{ paddingRight: '16px' }}>
                   <Button type="ghost" onClick={handleCancel}>
                     Cancel
                   </Button>
                 </div>
                 <div>
-                  <Button type="primary" htmlType="submit">
-                    Create
-                  </Button>
+                  {!selectTodo ?
+                    <Button type="primary" htmlType="submit">
+                      Create
+                  </Button> :
+                    <Button type="primary" onClick={onEdit}>
+                      Edit
+                </Button>}
                 </div>
               </div>
             </Form.Item>
