@@ -2,13 +2,14 @@ import React, { useState } from 'react'
 import { Form, Input, Button, message } from 'antd'
 import 'antd/dist/antd.css'
 import { useHistory } from "react-router-dom"
+import { styles } from '../components/style'
 
 const axios = require('axios').default
-export default function Login () {
-  let history = useHistory();
-  let [username, setUername] = useState('')
-  let [password, setPassword] = useState('')
-  let [token, setToken] = useState('')
+export default function Login() {
+  var history = useHistory();
+  var [username, setUername] = useState('')
+  var [password, setPassword] = useState('')
+  var [token, setToken] = useState('')
 
   const handleSubmit = () => {
     axios.post('https://candidate.neversitup.com/todo/users/auth', { username, password })
@@ -31,10 +32,10 @@ export default function Login () {
   }
 
   return (
-    <div style={{ display: 'flex', flex: 1, height: '100vh', backgroundColor: '#f0f2f5', justifyContent: 'center', alignItems: 'center' }}>
-      <div style={{ backgroundColor: 'white', width: '30%', height: '50%', justifyContent: 'center', 
-      alignItems: 'center', display:'flex', borderRadius:'5px' }}>
+    <div style={{ ...styles.backGroundFlex }}>
+      <div style={{ ...styles.backgroundContent }}>
         <Form
+          style={{paddingTop:'16px'}}
           name="basic"
           initialValues={{ remember: true }}
           onFinish={handleSubmit}
@@ -48,18 +49,19 @@ export default function Login () {
           </Form.Item>
 
           <Form.Item
-            label="Password"
-            onChange={getPassword}
+            label={<div style={{paddingRight:'3px'}}>Password</div>}
             name="password"
             rules={[{ required: true, message: 'Please input your password!' }]}
           >
-            <Input.Password />
+            <Input.Password onChange={getPassword} />
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Submit
-        </Button>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <Button block type="primary" htmlType="submit">
+                Submit
+            </Button>
+            </div>
           </Form.Item>
         </Form>
       </div>
